@@ -1,0 +1,1173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GroundOne - Geotechnical AASHTO SBC Suite</title>
+    
+    <!-- 1. Load Tailwind CSS (Styling) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- 2. Load React and ReactDOM (The engine) -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+    
+    <!-- 3. Load Babel (Translates the code for the browser) -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <!-- 4. Load SheetJS for Excel Import -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+    <!-- 5. Fonts and Print Styles -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700&family=Open+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        body { font-family: 'Open Sans', sans-serif; }
+        
+        /* --- SECURITY LAYERS --- */
+        /* 1. Disable Text Selection */
+        body {
+            -webkit-user-select: none; /* Safari */
+            -moz-user-select: none;    /* Firefox */
+            -ms-user-select: none;     /* IE10+/Edge */
+            user-select: none;         /* Standard */
+        }
+        
+        /* Allow selection in input fields only, so users can type */
+        input, textarea, select {
+            -webkit-user-select: text;
+            -moz-user-select: text;
+            -ms-user-select: text;
+            user-select: text;
+        }
+
+        /* 2. Disable Image Dragging */
+        img {
+            -webkit-user-drag: none;
+            user-drag: none;
+            pointer-events: none; /* Disables right click on images specifically */
+        }
+
+        @media print {
+            @page { size: A4; margin: 10mm; }
+            body { -webkit-print-color-adjust: exact; print-color-adjust: exact; background: white; }
+            .print\:hidden { display: none !important; }
+            .print\:border-none { border: none !important; }
+            .print\:p-0 { padding: 0 !important; }
+            .print\:text-black { color: black !important; }
+            /* Hide the login overlay when printing just in case */
+            #login-overlay { display: none !important; }
+            header button, header .bg-white { display: none !important; }
+            header { margin-bottom: 20px !important; }
+            .lg\:col-span-4 { width: 100% !important; margin-bottom: 20px; }
+            .lg\:col-span-8 { width: 100% !important; }
+            .grid { display: block !important; }
+            .break-inside-avoid { page-break-inside: avoid; }
+            footer { display: none !important; }
+        }
+        .animate-fade-in { animation: fadeIn 0.4s ease-out forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+
+    <!-- SECURITY SCRIPT -->
+    <script>
+        // 1. Disable Right Click
+        document.addEventListener('contextmenu', function(e) {
+            e.preventDefault();
+        });
+
+        // 2. Disable Keyboard Shortcuts (Inspect, View Source, Save, Copy)
+        document.addEventListener('keydown', function(e) {
+            // F12 (DevTools)
+            if (e.keyCode === 123) {
+                e.preventDefault();
+                return false;
+            }
+            
+            // Ctrl+Shift+I (DevTools)
+            if (e.ctrlKey && e.shiftKey && e.keyCode === 73) {
+                e.preventDefault();
+                return false;
+            }
+
+            // Ctrl+Shift+J (Console)
+            if (e.ctrlKey && e.shiftKey && e.keyCode === 74) {
+                e.preventDefault();
+                return false;
+            }
+
+            // Ctrl+Shift+C (Inspect Element)
+            if (e.ctrlKey && e.shiftKey && e.keyCode === 67) {
+                e.preventDefault();
+                return false;
+            }
+
+            // Ctrl+U (View Source)
+            if (e.ctrlKey && e.keyCode === 85) {
+                e.preventDefault();
+                return false;
+            }
+
+            // Ctrl+S (Save Page)
+            if (e.ctrlKey && e.keyCode === 83) {
+                e.preventDefault();
+                return false;
+            }
+
+            // Ctrl+C (Copy) - Optional: prevents copying data from inputs
+            if (e.ctrlKey && e.keyCode === 67) {
+                // Check if the target is NOT an input field (allow copying text user typed)
+                if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') {
+                    e.preventDefault();
+                    return false;
+                }
+            }
+        });
+    </script>
+</head>
+<body class="bg-blue-50 text-blue-900">
+    
+    <!-- PASSWORD PROTECTION OVERLAY -->
+    <div id="login-overlay" style="position:fixed; inset:0; background:#f0f9ff; z-index:10000; display:flex; flex-direction:column; align-items:center; justify-content:center;">
+        <div style="background:white; padding:2rem; border-radius:1rem; box-shadow:0 10px 25px rgba(0,0,0,0.1); text-align:center; max-width:400px; width:90%; border: 1px solid #bae6fd;">
+            <div style="margin-bottom: 1rem; display: flex; justify-content: center;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#0ea5e9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+            </div>
+            <h1 style="font-family:'Montserrat', sans-serif; font-size:1.5rem; font-weight:700; color:#0c4a6e; margin-bottom:0.5rem;">GroundOne Suite</h1>
+            <p style="color:#64748b; margin-bottom:1.5rem; font-size:0.9rem;">Protected Internal Tool. Enter access code.</p>
+            <form onsubmit="event.preventDefault(); checkPass();">
+                <input type="password" id="pass-input" placeholder="Access Code" style="width:100%; padding:0.75rem; border:1px solid #cbd5e1; border-radius:0.5rem; margin-bottom:1rem; outline:none; font-size:1rem; text-align:center;">
+                <button type="submit" style="width:100%; background:#0284c7; color:white; font-weight:600; padding:0.75rem; border-radius:0.5rem; border:none; cursor:pointer; transition:background 0.2s;">Unlock Tool</button>
+            </form>
+            <p id="error-msg" style="color:#ef4444; font-size:0.8rem; margin-top:1rem; display:none; font-weight:bold;">Incorrect code</p>
+        </div>
+        <div style="margin-top: 1rem; font-size: 0.75rem; color: #94a3b8;">&copy; 2024 GroundOne Geotechnics</div>
+    </div>
+
+    <script>
+        function checkPass() {
+            const pass = document.getElementById('pass-input').value;
+            // CHANGE THIS STRING TO SET YOUR OWN PASSWORD
+            if(pass === 'Ground0ne_Vb') { 
+                const overlay = document.getElementById('login-overlay');
+                overlay.style.opacity = '0';
+                setTimeout(() => {
+                    overlay.style.display = 'none';
+                }, 300);
+            } else {
+                const err = document.getElementById('error-msg');
+                err.style.display = 'block';
+                // Shake animation effect
+                const box = document.querySelector('#login-overlay > div');
+                box.style.transform = 'translateX(5px)';
+                setTimeout(() => box.style.transform = 'translateX(-5px)', 50);
+                setTimeout(() => box.style.transform = 'translateX(5px)', 100);
+                setTimeout(() => box.style.transform = 'translateX(0)', 150);
+            }
+        }
+    </script>
+
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useMemo, useRef, useEffect } = React;
+
+        // --- ICONS ---
+        const IconBase = ({ children, className }) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>{children}</svg>
+        );
+        const Calculator = (props) => <IconBase {...props}><rect width="16" height="20" x="4" y="2" rx="2"/><line x1="8" x2="16" y1="6" y2="6"/><line x1="16" x2="16" y1="14" y2="18"/><path d="M16 10h.01"/><path d="M12 10h.01"/><path d="M8 10h.01"/><path d="M12 14h.01"/><path d="M8 14h.01"/><path d="M12 18h.01"/><path d="M8 18h.01"/></IconBase>;
+        const Settings = (props) => <IconBase {...props}><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.09a2 2 0 0 1-1-1.74v-.47a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.39a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></IconBase>;
+        const Info = (props) => <IconBase {...props}><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></IconBase>;
+        const ChevronDown = (props) => <IconBase {...props}><path d="m6 9 6 6 6-6"/></IconBase>;
+        const ChevronUp = (props) => <IconBase {...props}><path d="m18 15-6-6-6 6"/></IconBase>;
+        const ArrowRight = (props) => <IconBase {...props}><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></IconBase>;
+        const LayoutTemplate = (props) => <IconBase {...props}><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><line x1="3" x2="21" y1="9" y2="9"/><line x1="9" x2="9" y1="9" y2="21"/></IconBase>;
+        const AlertTriangle = (props) => <IconBase {...props}><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" x2="12" y1="9" y2="13"/><line x1="12" x2="12.01" y1="17" y2="17"/></IconBase>;
+        const CheckCircle = (props) => <IconBase {...props}><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></IconBase>;
+        const Layers = (props) => <IconBase {...props}><path d="m12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z"/><path d="m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65"/><path d="m22 12.65-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65"/></IconBase>;
+        const MousePointer2 = (props) => <IconBase {...props}><path d="m12 6 2-2h6a2 2 0 0 1 2 2v6l-2 2"/><path d="m18 14 3.73 7.46a2 2 0 0 1-2.92 2.92L14 18l-4 4V6l11 11Z"/></IconBase>;
+        const BookOpen = (props) => <IconBase {...props}><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></IconBase>;
+        const HelpCircle = (props) => <IconBase {...props}><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></IconBase>;
+        const ShieldAlert = (props) => <IconBase {...props}><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></IconBase>;
+        const Printer = (props) => <IconBase {...props}><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect width="12" height="8" x="6" y="14"/></IconBase>;
+        const Home = (props) => <IconBase {...props}><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></IconBase>;
+        const ArrowLeft = (props) => <IconBase {...props}><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></IconBase>;
+        const Train = (props) => <IconBase {...props}><rect x="4" y="3" width="16" height="16" rx="2"/><path d="M4 11h16"/><path d="M12 3v8"/><path d="m8 19-2 3"/><path d="m18 22-2-3"/><path d="M8 15h0"/><path d="M16 15h0"/></IconBase>;
+        const Globe = (props) => <IconBase {...props}><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></IconBase>;
+        const Book = (props) => <IconBase {...props}><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/></IconBase>;
+        const Construction = (props) => <IconBase {...props}><rect x="2" y="6" width="20" height="8" rx="1"/><path d="M17 14v7"/><path d="M7 14v7"/><path d="M17 3v3"/><path d="M7 3v3"/><path d="M10 14 2.3 6.3"/><path d="m14 6 7.7 7.7"/><path d="m8 6 8 8"/></IconBase>;
+        const Trash2 = (props) => <IconBase {...props}><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></IconBase>;
+        const Plus = (props) => <IconBase {...props}><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></IconBase>;
+        const Upload = (props) => <IconBase {...props}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></IconBase>;
+        const RefreshCw = (props) => <IconBase {...props}><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/></IconBase>;
+
+        // ==========================================
+        // MAIN APP LOGIC
+        // ==========================================
+
+        const toRad = (deg) => (deg * Math.PI) / 180;
+        const toDeg = (rad) => (rad * 180) / Math.PI;
+
+        // Constants for Unit Conversions
+        const UNITS = {
+            metric: {
+                length: 'm',
+                stress: 'kPa',
+                density: 'kN/m³',
+                force: 'kN',
+                moment: 'kN-m'
+            },
+            imperial: {
+                length: 'ft',
+                stress: 'ksf',
+                density: 'kcf',
+                force: 'kips',
+                moment: 'kip-ft'
+            }
+        };
+
+        // Conversion Factors
+        // To convert FROM Metric TO Imperial
+        const FACTORS = {
+            length: 3.28084, // m to ft
+            stress: 0.0208854, // kPa to ksf
+            density: 0.00636588 // kN/m³ to kcf
+        };
+
+        const calculateSBC = (inputs, analysisType) => {
+            const { 
+                c_val, phi_val, gamma, Df, B, L, eB, eL, Dw, 
+                phi_resistance, // Single phi factor for this specific check
+                q_app_v, q_app_h, theta_load, competent_soil_above
+            } = inputs;
+
+            const requiredNums = [c_val, phi_val, gamma, Df, B, L, eB, eL, Dw, phi_resistance, q_app_v, q_app_h, theta_load];
+            if (requiredNums.some(val => val === "" || val === null || val === undefined || isNaN(val))) {
+                return { 
+                    type: analysisType,
+                    error: "Invalid Input",
+                    qn: 0, qR: 0,
+                    factors: {}
+                };
+            }
+
+            let B_prime_calc = B - 2 * Math.abs(eB);
+            let L_prime_calc = L - 2 * Math.abs(eL);
+
+            if (B_prime_calc <= 0 || L_prime_calc <= 0) {
+                return { error: "Eccentricity too large", qn:0, qR:0, factors: {} };
+            }
+
+            let B_prime = Math.min(B_prime_calc, L_prime_calc);
+            let L_prime = Math.max(B_prime_calc, L_prime_calc);
+            const phi_rad = toRad(phi_val);
+
+            // AASHTO 10.6.3.1.2a-1 Bearing Capacity Factors
+            let Nc, Nq, Ngamma;
+            if (phi_val === 0) {
+                Nc = 5.14; Nq = 1.0; Ngamma = 0.0;
+            } else {
+                Nq = Math.exp(Math.PI * Math.tan(phi_rad)) * Math.pow(Math.tan(toRad(45) + phi_rad / 2), 2);
+                Nc = (Nq - 1) / Math.tan(phi_rad);
+                Ngamma = 2 * (Nq + 1) * Math.tan(phi_rad);
+            }
+
+            // AASHTO Table 10.6.3.1.2a-3 Shape Correction Factors
+            let sc, sq, sgamma;
+            if (phi_val === 0) {
+                sc = 1 + (B_prime / (5 * L_prime)); sq = 1.0; sgamma = 1.0;
+            } else {
+                sc = 1 + (B_prime / L_prime) * (Nq / Nc);
+                sq = 1 + (B_prime / L_prime) * Math.tan(phi_rad);
+                sgamma = 1 - 0.4 * (B_prime / L_prime);
+            }
+
+            // AASHTO Eq. 10.6.3.1.2a-10 Depth Correction Factor (dq)
+            // Valid only if soil above is competent
+            // FIX: AASHTO specifies using physical width B, not effective width B', for this term.
+            let dq, dc = 1.0, dgamma = 1.0;
+            if (phi_val === 0) {
+                dq = 1.0; 
+            } else {
+                if(competent_soil_above === false) {
+                     dq = 1.0;
+                } else {
+                    const dq_term = 1 + 2 * Math.tan(phi_rad) * Math.pow(1 - Math.sin(phi_rad), 2) * Math.atan(Df / B);
+                    dq = Math.min(dq_term, 1.4);
+                }
+            }
+
+            // Load Inclination Factors (AASHTO 10.6.3.1.2a)
+            const V_force = q_app_v * (B * L); 
+            const H_force = q_app_h * (B * L);
+            let ic = 1.0, iq = 1.0, igamma = 1.0;
+            let n_exp = 0;
+
+            if (H_force > 0 && V_force > 0) {
+                const theta_rad = toRad(theta_load); 
+                const LB = L / B;
+                const BL = B / L;
+                const term1 = (2 + LB) / (1 + LB) * Math.pow(Math.cos(theta_rad), 2);
+                const term2 = (2 + BL) / (1 + BL) * Math.pow(Math.sin(theta_rad), 2);
+                n_exp = term1 + term2;
+
+                if (phi_val === 0) {
+                    if (c_val > 0) ic = 1 - (n_exp * H_force) / (c_val * B * L * Nc);
+                } else {
+                    const denom = V_force + (c_val * B * L * (1/Math.tan(phi_rad)));
+                    if (denom !== 0) {
+                        const base_iq = 1 - H_force / denom;
+                        iq = Math.pow(Math.max(0, base_iq), n_exp);
+                        igamma = Math.pow(Math.max(0, base_iq), n_exp + 1);
+                        if (Nq !== 1) ic = iq - (1 - iq) / (Nc * Math.tan(phi_rad));
+                    }
+                }
+            }
+
+            // Groundwater Correction Factors (Table 10.6.3.1.2a-2)
+            let Cwq, Cwgamma;
+            if (Dw <= 0) Cwq = 0.5;
+            else if (Dw >= Df) Cwq = 1.0;
+            else Cwq = 0.5 + 0.5 * (Dw / Df);
+
+            if (Dw <= Df) Cwgamma = 0.5;
+            else if (Dw >= (1.5 * B_prime + Df)) Cwgamma = 1.0;
+            else Cwgamma = 0.5 + 0.5 * ((Dw - Df) / (1.5 * B_prime));
+
+            // Combined Factors (Ncm, Nqm, Ngammam)
+            const Ncm = Nc * sc * dc * ic;
+            const Nqm = Nq * sq * dq * iq;
+            const Ngammam = Ngamma * sgamma * dgamma * igamma;
+
+            // General Bearing Capacity Equation (10.6.3.1.2a-1)
+            const term1 = c_val * Ncm;
+            const term2 = gamma * Df * Nqm * Cwq;
+            const term3 = 0.5 * gamma * B_prime * Ngammam * Cwgamma;
+            const qn = term1 + term2 + term3;
+            
+            return {
+                type: analysisType, qn, qR: phi_resistance * qn,
+                factors: { B_prime, L_prime, Nc, Nq, Ngamma, sc, sq, sgamma, dq, dc, dgamma, ic, iq, igamma, n_exp, Cwq, Cwgamma, Ncm, Nqm, Ngammam }
+            };
+        };
+
+        const InputField = ({ label, value, onChange, unit, step = 0.1, min = 0, max, className="" }) => {
+            const displayValue = (value === undefined || value === null || isNaN(value)) ? '' : value;
+            return (
+                <div className={`flex flex-col ${className} break-inside-avoid`}>
+                    <label className="text-xs font-bold text-blue-500 uppercase mb-1 truncate" title={label}>{label}</label>
+                    <div className="flex items-center bg-white rounded-md border border-blue-200 focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500 shadow-sm print:border-none print:shadow-none print:bg-transparent transition-all hover:border-blue-300">
+                    <input
+                        type="number"
+                        value={displayValue}
+                        onChange={(e) => {
+                            const val = e.target.value;
+                            onChange(val === '' ? '' : parseFloat(val));
+                        }}
+                        className="w-full bg-transparent p-2 text-sm text-blue-900 outline-none print:p-0 print:font-bold placeholder-blue-200"
+                        step={step}
+                        min={min}
+                        max={max}
+                    />
+                    <span className="text-xs text-blue-400 font-medium px-2 bg-blue-50 h-full flex items-center border-l border-blue-200 rounded-r-md whitespace-nowrap min-w-[2.5rem] justify-center print:bg-transparent print:border-none">
+                        {unit}
+                    </span>
+                    </div>
+                </div>
+            );
+        };
+        
+        const ToggleSwitch = ({ label, checked, onChange }) => (
+            <div className="flex flex-col mb-3">
+                <span className="text-xs font-bold text-blue-500 uppercase mb-1">{label}</span>
+                <button 
+                    onClick={() => onChange(!checked)}
+                    className={`relative w-12 h-6 rounded-full transition-colors focus:outline-none ${checked ? 'bg-blue-600' : 'bg-gray-300'}`}
+                >
+                    <span 
+                        className={`absolute top-1 left-1 bg-white w-4 h-4 rounded-full transition-transform ${checked ? 'translate-x-6' : 'translate-x-0'}`}
+                    />
+                </button>
+                 <span className="text-xs text-gray-500 mt-1">{checked ? "Yes" : "No"}</span>
+            </div>
+        );
+
+        const CheckCard = ({ title, applied, capacity, unit, subtext }) => {
+            const safeApplied = isNaN(applied) ? 0 : applied;
+            const safeCapacity = isNaN(capacity) ? 0 : capacity;
+            const isPass = safeApplied <= safeCapacity && safeCapacity > 0;
+            const ratio = safeApplied > 0 && safeCapacity > 0 ? (safeApplied / safeCapacity).toFixed(2) : '-';
+            
+            return (
+                <div className={`p-4 rounded-lg border flex flex-col justify-between shadow-sm break-inside-avoid ${isPass ? 'bg-emerald-50 border-emerald-200 print:bg-white print:border-black' : 'bg-rose-50 border-rose-200 print:bg-white print:border-black'}`}>
+                <div className="flex justify-between items-start mb-2">
+                    <h3 className="text-sm font-bold text-blue-800">{title}</h3>
+                    {isPass ? <CheckCircle className="w-5 h-5 text-emerald-500 print:text-black" /> : <AlertTriangle className="w-5 h-5 text-rose-500 print:text-black" />}
+                </div>
+                <div className="space-y-1">
+                    <div className="flex justify-between text-sm"><span className="text-blue-600">Applied:</span><span className="font-semibold text-blue-900">{safeApplied} {unit}</span></div>
+                    <div className="flex justify-between text-sm"><span className="text-blue-600">Capacity:</span><span className="font-semibold text-blue-900">{safeCapacity.toFixed(2)} {unit}</span></div>
+                    
+                    {subtext && <div className="text-xs text-blue-400 mt-1 italic">{subtext}</div>}
+                </div>
+                </div>
+            );
+        };
+
+        const FactorRow = ({ name, symbol, value, unit = "" }) => (
+            <div className="flex justify-between items-center py-2 border-b border-blue-100 last:border-0 hover:bg-blue-50 transition-colors px-2 rounded print:border-slate-300">
+                <div className="flex flex-col"><span className="text-sm font-medium text-blue-800">{symbol}</span><span className="text-xs text-blue-400">{name}</span></div>
+                <span className="text-sm font-mono text-blue-600 font-bold print:text-black">{typeof value === 'number' && !isNaN(value) ? value.toFixed(3) : '-'} <span className="text-xs text-blue-400 ml-1">{unit}</span></span>
+            </div>
+        );
+
+        const SectionViewSchematic = ({ Df, B, Dw, gamma, q_v, q_h, layers, units }) => {
+            const canvasW = 320; const canvasH = 220;
+            const sDf = isNaN(Df) ? 0 : Df; const sB = isNaN(B) ? 1 : B; const sDw = isNaN(Dw) ? 0 : Dw; const sqv = isNaN(q_v) ? 0 : q_v; const sqh = isNaN(q_h) ? 0 : q_h;
+            const maxDepth = Math.max(sDf + 1.5 * sB, sDf * 2, 5, ...layers.map(l=>l.to)); 
+            const maxWidth = Math.max(sB * 2, 6);
+            const padX = 50; const padY_top = 40; const padY_bot = 30;
+            const scaleX = (canvasW - 2 * padX) / maxWidth; const scaleY = (canvasH - padY_top - padY_bot) / maxDepth;
+            const toCY = (y) => padY_top + y * scaleY; const toCX = (x) => canvasW / 2 + x * scaleX;
+            const groundY = toCY(0); const footingTopY = toCY(sDf - (sDf > 0.5 ? 0.5 : sDf/2)); const footingBotY = toCY(sDf); const waterY = toCY(sDw);
+            const footingLeftX = toCX(-sB/2); const footingRightX = toCX(sB/2); const footingCenterX = toCX(0);
+            const vLen = 30; const hLen = (sqh / (sqv || 1)) * vLen * 2;
+            
+            return (
+                <div className="w-full flex flex-col items-center">
+                <svg width={canvasW} height={canvasH} className="border border-blue-200 bg-white rounded-lg print:border-black shadow-sm overflow-hidden">
+                    <defs>
+                        <pattern id="soil" width="10" height="10" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="10" stroke="#bfdbfe" strokeWidth="2" /></pattern>
+                        <pattern id="water" width="20" height="20" patternUnits="userSpaceOnUse"><path d="M 0 10 Q 5 5 10 10 T 20 10" fill="none" stroke="#60a5fa" strokeWidth="1" opacity="0.5" /></pattern>
+                        <marker id="arrow" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 L0,0" fill="#ef4444" /></marker>
+                        <marker id="dim-arrow-start" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto"><path d="M6,0 L0,3 L6,6 L6,0" fill="#1e3a8a" /></marker>
+                        <marker id="dim-arrow-end" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 L0,0" fill="#1e3a8a" /></marker>
+                    </defs>
+                    
+                    {/* Geomodel Layers */}
+                    {layers.map((layer, idx) => {
+                        const yStart = toCY(layer.from);
+                        const yEnd = toCY(layer.to);
+                        const height = yEnd - yStart;
+                        const colors = ['#fdf6e3', '#f0f4c3', '#e0f7fa', '#ffe0b2', '#e1bee7']; // Light distinct background colors
+                        const bg = colors[idx % colors.length];
+                        
+                        return (
+                            <g key={layer.id}>
+                                <rect x={0} y={yStart} width={canvasW} height={height} fill={bg} opacity="0.7" />
+                                <line x1={0} y1={yEnd} x2={canvasW} y2={yEnd} stroke="#cbd5e1" strokeWidth="1" strokeDasharray="4,2" />
+                                <text x={5} y={yStart + 12} fontSize="9" fill="#64748b" fontWeight="600">{layer.name}</text>
+                            </g>
+                        );
+                    })}
+
+                    {/* Default soil if no layers */}
+                    {layers.length === 0 && <rect x={0} y={groundY} width={canvasW} height={canvasH - groundY} fill="url(#soil)" opacity="0.5" />}
+
+                    <line x1={0} y1={groundY} x2={canvasW} y2={groundY} stroke="#1e40af" strokeWidth="2" />
+                    <rect x={toCX(-sB/6)} y={groundY - 15} width={toCX(sB/6) - toCX(-sB/6)} height={footingTopY - (groundY - 15)} fill="#dbeafe" stroke="#3b82f6" />
+                    <rect x={footingLeftX} y={footingTopY} width={footingRightX - footingLeftX} height={footingBotY - footingTopY} fill="#bfdbfe" stroke="#2563eb" strokeWidth="1.5" />
+                    <line x1={footingCenterX} y1={groundY - 15 - vLen} x2={footingCenterX} y2={groundY - 15} stroke="#ef4444" strokeWidth="2" markerEnd="url(#arrow)" />
+                    {Math.abs(sqh) > 0 && (<><line x1={footingCenterX - hLen} y1={groundY - 15} x2={footingCenterX} y2={groundY - 15} stroke="#ef4444" strokeWidth="2" markerEnd="url(#arrow)" /></>)}
+                    {sDw <= maxDepth && (<><line x1={0} y1={waterY} x2={canvasW} y2={waterY} stroke="#3b82f6" strokeWidth="2" strokeDasharray="5,3" /><rect x={0} y={waterY} width={canvasW} height={canvasH - waterY} fill="url(#water)" opacity="0.3" /></>)}
+                    <line x1={footingLeftX} y1={footingBotY + 15} x2={footingRightX} y2={footingBotY + 15} stroke="#1e3a8a" strokeWidth="1" markerEnd="url(#dim-arrow-end)" markerStart="url(#dim-arrow-start)" />
+                    <line x1={footingLeftX} y1={footingBotY} x2={footingLeftX} y2={footingBotY + 20} stroke="#1e3a8a" strokeWidth="0.5" />
+                    <line x1={footingRightX} y1={footingBotY} x2={footingRightX} y2={footingBotY + 20} stroke="#1e3a8a" strokeWidth="0.5" />
+                    <text x={toCX(0)} y={footingBotY + 28} textAnchor="middle" fontSize="11" fontWeight="bold" fill="#1e3a8a">B = {sB}{units.length}</text>
+                    <line x1={footingLeftX - 15} y1={groundY} x2={footingLeftX - 15} y2={footingBotY} stroke="#1e3a8a" strokeWidth="1" />
+                    <line x1={footingLeftX - 20} y1={groundY} x2={footingLeftX - 10} y2={groundY} stroke="#1e3a8a" strokeWidth="0.5" />
+                    <line x1={footingLeftX - 20} y1={footingBotY} x2={footingLeftX - 10} y2={footingBotY} stroke="#1e3a8a" strokeWidth="0.5" />
+                    <text x={footingLeftX - 25} y={(groundY + footingBotY)/2} textAnchor="end" fontSize="11" fontWeight="bold" fill="#1e3a8a">Df = {sDf}{units.length}</text>
+                </svg>
+                </div>
+            );
+        };
+
+        const SensitivityChart = ({ dataEffective, dataTotal, appliedPressure, currentB, units }) => {
+            const [hoverIndex, setHoverIndex] = useState(null);
+            const chartRef = useRef(null);
+
+            if (!dataEffective || dataEffective.length === 0) return <div className="text-center text-blue-400 py-10">No Data</div>;
+
+            const width = 380; 
+            const height = 250; 
+            const padding = { top: 30, right: 30, bottom: 50, left: 60 }; 
+            
+            const xMax = Math.max(...dataEffective.map(d => d.b)); const xMin = Math.min(...dataEffective.map(d => d.b));
+            const maxResEff = Math.max(...dataEffective.map(d => d.qr));
+            const maxResTot = dataTotal && dataTotal.length > 0 ? Math.max(...dataTotal.map(d => d.qr)) : 0;
+            const safeApplied = isNaN(appliedPressure) ? 0 : appliedPressure;
+            const yMax = Math.max(maxResEff, maxResTot, safeApplied) * 1.15;
+            const yMin = 0;
+            const xScale = (val) => ((val - xMin) / (xMax - xMin)) * (width - padding.left - padding.right) + padding.left;
+            const yScale = (val) => height - padding.bottom - ((val - yMin) / (yMax - yMin)) * (height - padding.top - padding.bottom);
+            const pointsEffective = dataEffective.map(d => `${xScale(d.b)},${yScale(d.qr)}`).join(" ");
+            const pointsTotal = dataTotal && dataTotal.length > 0 ? dataTotal.map(d => `${xScale(d.b)},${yScale(d.qr)}`).join(" ") : null;
+            const appliedY = yScale(safeApplied);
+
+            const handleMouseMove = (e) => {
+                if (!chartRef.current) return;
+                const rect = chartRef.current.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const chartWidth = width - padding.left - padding.right;
+                const fraction = Math.max(0, Math.min(1, (x - padding.left) / chartWidth));
+                const index = Math.round(fraction * (dataEffective.length - 1));
+                setHoverIndex(index);
+            };
+
+            const handleMouseLeave = () => setHoverIndex(null);
+
+            let activeB, activeEff, activeTot, tooltipX, tooltipY;
+            if (hoverIndex !== null) {
+                const dEff = dataEffective[hoverIndex];
+                activeB = dEff.b; activeEff = dEff.qr; if (pointsTotal) activeTot = dataTotal[hoverIndex].qr;
+                tooltipX = xScale(activeB); tooltipY = yScale(activeEff);
+            } else {
+                const idx = dataEffective.findIndex(d => Math.abs(d.b - currentB) < 0.05);
+                if (idx !== -1) {
+                    activeB = dataEffective[idx].b; activeEff = dataEffective[idx].qr; if (pointsTotal) activeTot = dataTotal[idx].qr;
+                    tooltipX = xScale(activeB); tooltipY = yScale(activeEff);
+                }
+            }
+
+            return (
+                <div className="w-full flex flex-row items-center justify-center gap-4"> 
+                    <div className="overflow-hidden relative" style={{ width: width, height: height }} onMouseMove={handleMouseMove} onMouseLeave={handleMouseLeave} ref={chartRef}>
+                    <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-auto cursor-crosshair">
+                        {[0, 0.25, 0.5, 0.75, 1].map((t) => { const y = yScale(yMax * t); return <line key={t} x1={padding.left} y1={y} x2={width - padding.right} y2={y} stroke="#eff6ff" strokeWidth="1" />; })}
+                        <line x1={padding.left} y1={padding.top} x2={padding.left} y2={height - padding.bottom} stroke="#93c5fd" strokeWidth="2" />
+                        <line x1={padding.left} y1={height - padding.bottom} x2={width - padding.right} y2={height - padding.bottom} stroke="#93c5fd" strokeWidth="2" />
+                        
+                        <text x={width / 2} y={height - 15} textAnchor="middle" fontSize="12" fill="#60a5fa" fontWeight="500">Footing Width B ({units.length})</text>
+                        <text x={15} y={height / 2} textAnchor="middle" transform={`rotate(-90, 15, ${height / 2})`} fontSize="12" fill="#60a5fa" fontWeight="500">Resistance ({units.stress})</text>
+                        
+                        {pointsTotal && <polyline points={pointsTotal} fill="none" stroke="#059669" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />}
+                        <polyline points={pointsEffective} fill="none" stroke="#2563eb" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                        <line x1={padding.left} y1={appliedY} x2={width - padding.right} y2={appliedY} stroke="#ef4444" strokeWidth="1.5" strokeDasharray="4" />
+                        {activeB !== undefined && (<><line x1={tooltipX} y1={padding.top} x2={tooltipX} y2={height - padding.bottom} stroke="#94a3b8" strokeWidth="1" strokeDasharray="2" /><circle cx={tooltipX} cy={yScale(activeEff)} r="4" fill="white" stroke="#2563eb" strokeWidth="2" />{activeTot && <circle cx={tooltipX} cy={yScale(activeTot)} r="4" fill="white" stroke="#059669" strokeWidth="2" />}</>)}
+                        {[0, 0.25, 0.5, 0.75, 1].map(t => { const val = yMax * t; const display = isNaN(val) ? '' : val.toFixed(0); return <text key={t} x={padding.left - 5} y={yScale(val) + 4} textAnchor="end" fontSize="10" fill="#60a5fa">{display}</text> })}
+                        {[xMin, (xMin+xMax)/2, xMax].map(t => { return <text key={t} x={xScale(t)} y={height - padding.bottom + 15} textAnchor="middle" fontSize="10" fill="#60a5fa">{t.toFixed(1)}</text> })}
+                    </svg>
+                    {activeB !== undefined && (
+                        <div className="absolute bg-white border border-blue-200 shadow-lg rounded p-2 text-xs z-10 pointer-events-none" style={{ left: Math.min(width-100, tooltipX + 10), top: Math.min(height-60, Math.max(10, tooltipY - 40)) }}>
+                            <div className="font-bold mb-1 border-b border-blue-100 pb-1 text-blue-700">B = {activeB.toFixed(1)} {units.length}</div>
+                            <div className="flex items-center gap-2 text-blue-700"><div className="w-2 h-2 rounded-full bg-blue-600"></div><span>Eff: {activeEff.toFixed(1)} {units.stress}</span></div>
+                            {activeTot && (<div className="flex items-center gap-2 text-emerald-700"><div className="w-2 h-2 rounded-full bg-emerald-600"></div><span>Tot: {activeTot.toFixed(1)} {units.stress}</span></div>)}
+                        </div>
+                    )}
+                    </div>
+                    {/* Legend on the Right */}
+                    <div className="flex flex-col gap-2 text-xs min-w-[80px]">
+                        <div className="flex items-center gap-2"><div className="w-4 h-1 bg-blue-600"></div><span className="text-blue-600">Effective</span></div>
+                        {pointsTotal && (<div className="flex items-center gap-2"><div className="w-4 h-1 bg-emerald-600"></div><span className="text-blue-600">Total</span></div>)}
+                        <div className="flex items-center gap-2"><div className="w-4 h-0.5 border-t border-dashed border-red-500"></div><span className="text-blue-600">Applied</span></div>
+                    </div>
+                </div>
+            );
+        };
+        
+        const DocumentationSection = () => (
+          <div className="bg-white rounded-xl shadow-sm border border-blue-200 overflow-hidden mt-8 print:hidden">
+            <div className="bg-blue-800 px-6 py-4 flex items-center gap-2"><BookOpen className="text-white w-5 h-5" /><h2 className="text-white font-bold text-lg">Documentation & References</h2></div>
+            <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div>
+                <h3 className="flex items-center gap-2 font-bold text-blue-700 mb-3"><HelpCircle className="w-4 h-4 text-blue-500" /> How to Use Guide</h3>
+                <ul className="space-y-2 text-sm text-blue-600 list-disc pl-5"><li>Select <strong>Unit System</strong> (Metric/Imperial).</li><li>Select <strong>Soil Type</strong> (Granular/Cohesive).</li><li>Enter <strong>Geotechnical Properties</strong>.</li><li>Define <strong>Footing Geometry</strong>.</li><li>Input <strong>Applied Pressures</strong>.</li></ul>
+              </div>
+              <div className="bg-amber-50 p-4 rounded-lg border border-amber-100">
+                <h3 className="flex items-center gap-2 font-bold text-amber-800 mb-2"><ShieldAlert className="w-4 h-4" /> Important Disclaimer</h3>
+                <p className="text-sm text-amber-700 mb-2 font-semibold">User needs to ensure that all the layer below bearing layer are stronger than bearing layer.</p>
+                <p className="text-xs text-amber-600">Assumes homogeneous bearing stratum. If weaker layers exist within influence zone, specific multi-layer analysis is required.</p>
+              </div>
+              <div>
+                <h3 className="font-bold text-blue-700 mb-3">Assumptions</h3>
+                <ul className="space-y-1 text-sm text-blue-600"><li>• <strong>Rigid Footing:</strong> Linear pressure distribution.</li><li>• <strong>General Shear Failure:</strong> Local shear not explicit.</li><li>• <strong>Water Table:</strong> Static hydrostatic.</li><li>• <strong>Ground Inclination Factors:</strong> Considered as 1.</li></ul>
+              </div>
+              <div>
+                <h3 className="font-bold text-blue-700 mb-3">References</h3>
+                <ul className="space-y-1 text-sm text-blue-600 font-mono"><li>1. AASHTO LRFD Bridge Design Specs, 10th Ed</li><li>2. Section 10.6.3.1.2: Theoretical Estimation</li><li>3. Table 10.5.5.2.2-1: Resistance Factors</li><li>4. Table 10.6.3.1.2a-1: BC Factors</li></ul>
+              </div>
+            </div>
+          </div>
+        );
+
+        const FactorTable = ({ resultData, title, colorClass, units }) => (
+            <div className={`border rounded-lg overflow-hidden mb-4 ${colorClass} break-inside-avoid`}>
+                <div className="bg-blue-50 px-4 py-2 border-b font-bold text-xs uppercase tracking-wider text-blue-600">{title} Factors</div>
+                <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-1">
+                    <FactorRow name="Effective Width B'" symbol="B'" value={resultData.factors.B_prime} unit={units.length} />
+                    <FactorRow name="Cohesion Factor" symbol="Nc" value={resultData.factors.Nc} />
+                    <FactorRow name="Surcharge Factor" symbol="Nq" value={resultData.factors.Nq} />
+                    <FactorRow name="Weight Factor" symbol="N&#947;" value={resultData.factors.Ngamma} />
+                    <FactorRow name="Shape (Cohesion)" symbol="sc" value={resultData.factors.sc} />
+                    <FactorRow name="Shape (Surcharge)" symbol="sq" value={resultData.factors.sq} />
+                    <FactorRow name="Shape (Weight)" symbol="s&#947;" value={resultData.factors.sgamma} />
+                    <FactorRow name="Depth (Surcharge)" symbol="dq" value={resultData.factors.dq} />
+                    <FactorRow name="Exponent (n)" symbol="n" value={resultData.factors.n_exp} />
+                    <FactorRow name="Inclination (Coh)" symbol="ic" value={resultData.factors.ic} />
+                    <FactorRow name="Inclination (Sur)" symbol="iq" value={resultData.factors.iq} />
+                    <FactorRow name="Inclination (Wgt)" symbol="i&#947;" value={resultData.factors.igamma} />
+                    <FactorRow name="Water (Surcharge)" symbol="Cwq" value={resultData.factors.Cwq} />
+                    <FactorRow name="Water (Weight)" symbol="Cw&#947;" value={resultData.factors.Cwgamma} />
+                    <div className="col-span-full border-t border-blue-100 my-2"></div>
+                    <FactorRow name="Nominal Resistance" symbol="qn" value={resultData.qn} unit={units.stress} />
+                </div>
+            </div>
+        );
+
+        // --- GEOMODEL MANAGER ---
+        const GeomodelManager = ({ layers, setLayers, units }) => {
+            const [newLayer, setNewLayer] = useState({
+                from: '', to: '', type: 'Granular', name: '', 
+                gamma: '', phi: '', cu: '', c_prime: ''
+            });
+            const fileInputRef = useRef(null);
+
+            const addLayer = () => {
+                if (newLayer.from === '' || newLayer.to === '') return;
+                setLayers([...layers, { ...newLayer, id: Date.now() }].sort((a,b) => a.from - b.from));
+                setNewLayer({ from: '', to: '', type: 'Granular', name: '', gamma: '', phi: '', cu: '', c_prime: '' });
+            };
+
+            const removeLayer = (id) => {
+                setLayers(layers.filter(l => l.id !== id));
+            };
+
+            const handleFileUpload = (event) => {
+                const file = event.target.files[0];
+                if (!file) return;
+
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    
+                    const firstSheetName = workbook.SheetNames[0];
+                    const worksheet = workbook.Sheets[firstSheetName];
+                    const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+                    
+                    const parsedLayers = [];
+                    
+                    if (jsonData.length < 2) {
+                         alert("File appears empty or invalid.");
+                         return;
+                    }
+
+                    for (let i = 1; i < jsonData.length; i++) {
+                        const row = jsonData[i];
+                        if (!row || row.length === 0) continue;
+
+                        const from = parseFloat(row[0]);
+                        const to = parseFloat(row[1]);
+                        
+                        if (!isNaN(from) && !isNaN(to)) {
+                            parsedLayers.push({
+                                id: Date.now() + i,
+                                from: from,
+                                to: to,
+                                type: row[2] && typeof row[2] === 'string' && row[2].toLowerCase().includes('cohesive') ? 'Cohesive' : 'Granular',
+                                name: row[3] || `Layer ${i}`,
+                                gamma: parseFloat(row[4]) || 0,
+                                phi: parseFloat(row[5]) || 0,
+                                c_prime: parseFloat(row[6]) || 0,
+                                cu: parseFloat(row[7]) || 0
+                            });
+                        }
+                    }
+                    
+                    if (parsedLayers.length > 0) {
+                        setLayers(parsedLayers.sort((a,b) => a.from - b.from));
+                    } else {
+                        alert("Could not parse valid layers from the file.");
+                    }
+                };
+                reader.readAsArrayBuffer(file);
+                event.target.value = '';
+            };
+
+            return (
+                <div className="bg-white rounded-xl shadow-sm border border-blue-200 overflow-hidden break-inside-avoid print:hidden">
+                    <div className="px-4 py-3 bg-blue-50 border-b border-blue-200 flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                            <Layers className="w-4 h-4 text-blue-500" /><h2 className="font-semibold text-blue-700">Geomodel Manager</h2>
+                        </div>
+                        <div>
+                            <input 
+                                type="file" 
+                                ref={fileInputRef}
+                                onChange={handleFileUpload}
+                                accept=".xlsx, .xls" 
+                                style={{ display: 'none' }} 
+                            />
+                            <button 
+                                onClick={() => fileInputRef.current.click()}
+                                className="text-xs flex items-center gap-1 bg-white border border-blue-200 text-blue-600 px-2 py-1 rounded hover:bg-blue-50 transition-colors"
+                            >
+                                <Upload className="w-3 h-3" /> Import XLSX
+                            </button>
+                        </div>
+                    </div>
+                    <div className="p-4">
+                        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-2 mb-4 items-end">
+                            <InputField label={`From (${units.length})`} value={newLayer.from} onChange={v => setNewLayer({...newLayer, from: v})} />
+                            <InputField label={`To (${units.length})`} value={newLayer.to} onChange={v => setNewLayer({...newLayer, to: v})} />
+                            <div className="flex flex-col">
+                                <label className="text-xs font-bold text-blue-500 uppercase mb-1">Type</label>
+                                <select 
+                                    className="w-full bg-white border border-blue-200 rounded-md p-1.5 text-sm text-blue-900 focus:border-blue-500 outline-none h-[34px]"
+                                    value={newLayer.type} 
+                                    onChange={e => setNewLayer({...newLayer, type: e.target.value})}
+                                >
+                                    <option value="Granular">Granular</option>
+                                    <option value="Cohesive">Cohesive</option>
+                                </select>
+                            </div>
+                            <InputField label="Name" value={newLayer.name} onChange={v => setNewLayer({...newLayer, name: v})} unit="" />
+                            <InputField label={`γ (${units.density})`} value={newLayer.gamma} onChange={v => setNewLayer({...newLayer, gamma: v})} />
+                            <InputField label="Φ' (deg)" value={newLayer.phi} onChange={v => setNewLayer({...newLayer, phi: v})} />
+                            <InputField label={`Cu (${units.stress})`} value={newLayer.cu} onChange={v => setNewLayer({...newLayer, cu: v})} />
+                            <InputField label={`C' (${units.stress})`} value={newLayer.c_prime} onChange={v => setNewLayer({...newLayer, c_prime: v})} />
+                            <button onClick={addLayer} className="bg-blue-600 text-white rounded-md p-2 hover:bg-blue-700 flex items-center justify-center h-[34px] w-full"><Plus className="w-4 h-4"/></button>
+                        </div>
+
+                        {layers.length > 0 && (
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-sm text-left text-blue-800">
+                                    <thead className="text-xs text-blue-600 uppercase bg-blue-50">
+                                        <tr>
+                                            <th className="px-3 py-2">Depth ({units.length})</th>
+                                            <th className="px-3 py-2">Type</th>
+                                            <th className="px-3 py-2">Name</th>
+                                            <th className="px-3 py-2">γ ({units.density})</th>
+                                            <th className="px-3 py-2">Φ'</th>
+                                            <th className="px-3 py-2">Cu ({units.stress})</th>
+                                            <th className="px-3 py-2">C' ({units.stress})</th>
+                                            <th className="px-3 py-2">Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {layers.map(layer => (
+                                            <tr key={layer.id} className="border-b border-blue-100 hover:bg-blue-50">
+                                                <td className="px-3 py-2 font-mono">{layer.from} - {layer.to}</td>
+                                                <td className="px-3 py-2">{layer.type}</td>
+                                                <td className="px-3 py-2">{layer.name}</td>
+                                                <td className="px-3 py-2">{layer.gamma}</td>
+                                                <td className="px-3 py-2">{layer.phi}</td>
+                                                <td className="px-3 py-2">{layer.cu}</td>
+                                                <td className="px-3 py-2">{layer.c_prime}</td>
+                                                <td className="px-3 py-2">
+                                                    <button onClick={() => removeLayer(layer.id)} className="text-red-500 hover:text-red-700"><Trash2 className="w-4 h-4"/></button>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        )}
+                        {layers.length === 0 && <div className="text-center text-sm text-gray-400 py-4 italic">No layers defined. Add layers to auto-populate soil properties based on depth.</div>}
+                    </div>
+                </div>
+            );
+        };
+
+        const AashtoModule = ({ onBack }) => {
+            const [unitSystem, setUnitSystem] = useState('metric'); // 'metric' or 'imperial'
+            const [soilType, setSoilType] = useState('granular');
+            const [layers, setLayers] = useState([
+                { id: 1, from: 0, to: 2, type: 'Granular', name: 'Fill', gamma: 18, phi: 30, cu: 0, c_prime: 0 },
+                { id: 2, from: 2, to: 5, type: 'Cohesive', name: 'Clay', gamma: 19, phi: 0, cu: 50, c_prime: 5 },
+                { id: 3, from: 5, to: 10, type: 'Granular', name: 'Dense Sand', gamma: 20, phi: 35, cu: 0, c_prime: 0 }
+            ]);
+
+            const [params, setParams] = useState({
+                B: 3.0, L: 3.0, Df: 1.5, eB: 0.0, eL: 0.0, gamma: 19, Dw: 0,
+                Su: 100, phi_total_res: 0.45, c_prime: 0, phi_prime: 32, phi_eff_res: 0.45,
+                phi_extreme_res: 1.0, 
+                q_app_strength: 200, q_horiz_strength: 0, theta_strength: 0,
+                q_app_extreme: 300, q_horiz_extreme: 0, theta_extreme: 0,
+                competent_soil_above: false,
+            });
+            const [showFactors, setShowFactors] = useState(false);
+
+            const updateParam = (key, value) => setParams(prev => ({ ...prev, [key]: value }));
+
+            // --- UNIT CONVERSION LOGIC ---
+            const convertVal = (val, factor, toMetric) => {
+                if (val === "" || val === null) return val;
+                return toMetric ? val / factor : val * factor;
+            };
+
+            const toggleUnits = () => {
+                const newSystem = unitSystem === 'metric' ? 'imperial' : 'metric';
+                const toMetric = newSystem === 'metric'; // Converting BACK to metric if new system is metric
+                
+                // Factors: If moving TO imperial, multiply. If moving TO metric, divide.
+                // However, convertVal logic: if toMetric is true (Imperial -> Metric), we divide by factor.
+                // If toMetric is false (Metric -> Imperial), we multiply by factor.
+                
+                // Convert Params
+                const newParams = { ...params };
+                ['B', 'L', 'Df', 'eB', 'eL', 'Dw'].forEach(k => newParams[k] = convertVal(newParams[k], FACTORS.length, toMetric));
+                ['gamma'].forEach(k => newParams[k] = convertVal(newParams[k], FACTORS.density, toMetric));
+                ['Su', 'c_prime', 'q_app_strength', 'q_horiz_strength', 'q_app_extreme', 'q_horiz_extreme'].forEach(k => newParams[k] = convertVal(newParams[k], FACTORS.stress, toMetric));
+                
+                setParams(newParams);
+
+                // Convert Layers
+                const newLayers = layers.map(l => ({
+                    ...l,
+                    from: convertVal(l.from, FACTORS.length, toMetric),
+                    to: convertVal(l.to, FACTORS.length, toMetric),
+                    gamma: convertVal(l.gamma, FACTORS.density, toMetric),
+                    cu: convertVal(l.cu, FACTORS.stress, toMetric),
+                    c_prime: convertVal(l.c_prime, FACTORS.stress, toMetric)
+                }));
+                setLayers(newLayers);
+                
+                setUnitSystem(newSystem);
+            };
+
+            // --- AUTO-LOOKUP LOGIC ---
+            useEffect(() => {
+                const depth = parseFloat(params.Df);
+                if (isNaN(depth)) return;
+
+                const layer = layers.find(l => depth >= parseFloat(l.from) && depth < parseFloat(l.to));
+                
+                if (layer) {
+                    setSoilType(layer.type.toLowerCase());
+                    setParams(prev => ({
+                        ...prev,
+                        gamma: parseFloat(layer.gamma) || prev.gamma,
+                        Su: parseFloat(layer.cu) || 0,
+                        phi_prime: parseFloat(layer.phi) || 0,
+                        c_prime: parseFloat(layer.c_prime) || 0
+                    }));
+                }
+            }, [params.Df, layers]); 
+
+            const handlePrint = () => {
+                setShowFactors(true);
+                setTimeout(() => window.print(), 100);
+            };
+
+            const results = useMemo(() => {
+                const common = {
+                    gamma: params.gamma, Df: params.Df, B: params.B, L: params.L,
+                    eB: params.eB, eL: params.eL, Dw: params.Dw,
+                    competent_soil_above: params.competent_soil_above
+                };
+                
+                const strengthInputs = {
+                    ...common,
+                    q_app_v: params.q_app_strength,
+                    q_app_h: params.q_horiz_strength,
+                    theta_load: params.theta_strength
+                };
+
+                const extremeInputs = {
+                    ...common,
+                    q_app_v: params.q_app_extreme,
+                    q_app_h: params.q_horiz_extreme,
+                    theta_load: params.theta_extreme
+                };
+
+                const res = { effective: {}, total: {} };
+
+                const effStrength = calculateSBC({ ...strengthInputs, c_val: params.c_prime, phi_val: params.phi_prime, phi_resistance: params.phi_eff_res }, 'Effective Stress');
+                const effExtreme = calculateSBC({ ...extremeInputs, c_val: params.c_prime, phi_val: params.phi_prime, phi_resistance: params.phi_extreme_res }, 'Effective Stress');
+
+                res.effective = {
+                    strength: effStrength,
+                    extreme: effExtreme,
+                    qR_strength: effStrength.qR,
+                    qR_extreme: effExtreme.qR
+                };
+
+                if (soilType === 'cohesive') {
+                    const totStrength = calculateSBC({ ...strengthInputs, c_val: params.Su, phi_val: 0, phi_resistance: params.phi_total_res }, 'Total Stress');
+                    const totExtreme = calculateSBC({ ...extremeInputs, c_val: params.Su, phi_val: 0, phi_resistance: params.phi_extreme_res }, 'Total Stress');
+
+                    res.total = {
+                        strength: totStrength,
+                        extreme: totExtreme,
+                        qR_strength: totStrength.qR,
+                        qR_extreme: totExtreme.qR
+                    };
+                }
+                return res;
+            }, [params, soilType]);
+
+            const sensitivityData = useMemo(() => {
+                const data = { effective: [], total: [] };
+                // Adjust simulation range based on units
+                const maxRange = unitSystem === 'metric' ? 20 : 60; 
+                
+                for (let i = 0; i <= 20; i++) {
+                    const b_sim = 1 + i * ((maxRange - 1) / 20); 
+                    if (b_sim <= 2 * Math.abs(params.eB)) {
+                        data.effective.push({ b: b_sim, qr: 0 });
+                        if (soilType === 'cohesive') data.total.push({ b: b_sim, qr: 0 });
+                        continue;
+                    }
+                    const simInputs = {
+                        gamma: params.gamma, Df: params.Df, B: b_sim, L: params.L,
+                        eB: params.eB, eL: params.eL, Dw: params.Dw,
+                        q_app_v: params.q_app_strength, q_app_h: params.q_horiz_strength,
+                        theta_load: params.theta_strength, 
+                        competent_soil_above: params.competent_soil_above
+                    };
+                    
+                    const simEff = calculateSBC({ ...simInputs, c_val: params.c_prime, phi_val: params.phi_prime, phi_resistance: params.phi_eff_res }, 'Effective');
+                    data.effective.push({ b: b_sim, qr: simEff.qR });
+                    
+                    if (soilType === 'cohesive') {
+                        const simTot = calculateSBC({ ...simInputs, c_val: params.Su, phi_val: 0, phi_resistance: params.phi_total_res }, 'Total');
+                        data.total.push({ b: b_sim, qr: simTot.qR });
+                    }
+                }
+                return data;
+            }, [params, soilType, unitSystem]);
+
+            const currentUnits = UNITS[unitSystem];
+
+            return (
+                <div className="animate-fade-in">
+                    <header className="mb-8 flex flex-col md:flex-row md:items-center justify-between print:mb-4">
+                    <div className="flex items-center gap-4">
+                        <button onClick={onBack} className="p-2 rounded-full hover:bg-blue-100 transition-colors print:hidden" title="Back to Home"><ArrowLeft className="w-5 h-5 text-blue-600"/></button>
+                        <div>
+                            <h1 style={{ fontFamily: "'Montserrat', sans-serif" }} className="text-3xl font-bold text-white bg-sky-400 px-4 py-2 rounded-xl shadow-md tracking-tight inline-block print:text-black print:bg-white print:p-0 print:shadow-none">
+                            GroundOne
+                            </h1>
+                            <p className="text-blue-500 text-sm mt-1 font-medium">AASHTO LRFD Spread Footing Bearing Capacity Analysis</p>
+                        </div>
+                    </div>
+                    <div className="mt-4 md:mt-0 flex gap-4 print:hidden items-center">
+                        {/* Unit Toggle */}
+                        <div className="bg-white p-1 rounded-lg border border-blue-200 shadow-sm flex">
+                            <button onClick={unitSystem === 'imperial' ? toggleUnits : null} className={`px-3 py-1 rounded-md text-xs font-bold transition-all ${unitSystem === 'metric' ? 'bg-indigo-100 text-indigo-700 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}>Metric (SI)</button>
+                            <button onClick={unitSystem === 'metric' ? toggleUnits : null} className={`px-3 py-1 rounded-md text-xs font-bold transition-all ${unitSystem === 'imperial' ? 'bg-indigo-100 text-indigo-700 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}>Imperial (US)</button>
+                        </div>
+
+                        <button onClick={handlePrint} className="flex items-center gap-2 px-4 py-2 bg-blue-800 text-white rounded-lg shadow hover:bg-blue-700 transition-colors"><Printer className="w-4 h-4" /> Print</button>
+                        <div className="bg-white p-1 rounded-lg border border-blue-200 shadow-sm flex">
+                            <button onClick={() => setSoilType('granular')} className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${soilType === 'granular' ? 'bg-blue-100 text-blue-700 shadow-sm' : 'text-blue-400 hover:text-blue-600'}`}>Granular</button>
+                            <button onClick={() => setSoilType('cohesive')} className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${soilType === 'cohesive' ? 'bg-emerald-100 text-emerald-700 shadow-sm' : 'text-blue-400 hover:text-blue-600'}`}>Cohesive</button>
+                        </div>
+                    </div>
+                    </header>
+
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                    <div className="lg:col-span-12">
+                        <GeomodelManager layers={layers} setLayers={setLayers} units={currentUnits} />
+                    </div>
+                    
+                    <div className="lg:col-span-4 space-y-6">
+
+                        <div className="bg-white rounded-xl shadow-sm border border-blue-200 overflow-hidden break-inside-avoid print:border-none print:shadow-none">
+                        <div className="px-4 py-3 bg-blue-50 border-b border-blue-200 flex items-center gap-2 print:bg-transparent print:border-b-2 print:border-black print:px-0"><Settings className="w-4 h-4 text-blue-500 print:hidden" /><h2 className="font-semibold text-blue-700">Soil Properties <span className="text-xs font-normal text-gray-500 ml-2">(Auto-populated)</span></h2></div>
+                        <div className="p-4 space-y-4 print:px-0">
+                            {soilType === 'cohesive' && (
+                                <div className="bg-emerald-50 p-3 rounded-lg border border-emerald-100 print:bg-transparent print:border-none print:p-0">
+                                    <h3 className="text-xs font-bold text-emerald-700 uppercase mb-2 print:text-black">Total Stress (Undrained)</h3>
+                                    <div className="grid grid-cols-2 gap-3"><InputField label="Undrained Cohesion (cu)" value={params.Su} onChange={(v) => updateParam('Su', v)} unit={currentUnits.stress} step={5} /><InputField label="Res. Factor (&#966;)" value={params.phi_total_res} onChange={(v) => updateParam('phi_total_res', v)} unit="" step={0.05} max={1} /></div>
+                                </div>
+                            )}
+                            <div className="bg-blue-50 p-3 rounded-lg border border-blue-100 print:bg-transparent print:border-none print:p-0">
+                                <h3 className="text-xs font-bold text-blue-700 uppercase mb-2 print:text-black">Effective Stress (Drained)</h3>
+                                <div className="grid grid-cols-2 gap-3"><InputField label="Eff. Cohesion (c')" value={params.c_prime} onChange={(v) => updateParam('c_prime', v)} unit={currentUnits.stress} step={1} /><InputField label="Eff. Friction (&#966;')" value={params.phi_prime} onChange={(v) => updateParam('phi_prime', v)} unit="deg" min={0} max={45} /><InputField label="Res. Factor (&#966;)" value={params.phi_eff_res} onChange={(v) => updateParam('phi_eff_res', v)} unit="" step={0.05} max={1} /></div>
+                            </div>
+                            <div className="grid grid-cols-2 gap-3 pt-2 border-t border-blue-100 print:border-none"><InputField label="Unit Weight (&#947;)" value={params.gamma} onChange={(v) => updateParam('gamma', v)} unit={currentUnits.density} /><InputField label="Water Depth (Dw)" value={params.Dw} onChange={(v) => updateParam('Dw', v)} unit={currentUnits.length} /></div>
+                             <div className="pt-2 border-t border-blue-100 print:border-none">
+                                <ToggleSwitch label="Is soil above footing competent?" checked={params.competent_soil_above} onChange={(v) => updateParam('competent_soil_above', v)} />
+                            </div>
+                        </div>
+                        </div>
+                        <div className="bg-white rounded-xl shadow-sm border border-blue-200 overflow-hidden break-inside-avoid print:border-none print:shadow-none">
+                        <div className="px-4 py-3 bg-blue-50 border-b border-blue-200 flex items-center gap-2 print:bg-transparent print:border-b-2 print:border-black print:px-0"><LayoutTemplate className="w-4 h-4 text-blue-500 print:hidden" /><h2 className="font-semibold text-blue-700">Geometry</h2></div>
+                        <div className="p-4 grid grid-cols-2 gap-4 print:px-0">
+                            <InputField label={`Width (B)`} value={params.B} onChange={(v) => updateParam('B', v)} unit={currentUnits.length} />
+                            <InputField label={`Length (L)`} value={params.L} onChange={(v) => updateParam('L', v)} unit={currentUnits.length} />
+                            <InputField label={`Embedment (Df)`} value={params.Df} onChange={(v) => updateParam('Df', v)} unit={currentUnits.length} />
+                            <div className="col-span-2 grid grid-cols-2 gap-4 border-t pt-4 border-blue-100 mt-2 print:border-none print:mt-0">
+                                <InputField label="Eccentricity (eB)" value={params.eB} onChange={(v) => updateParam('eB', v)} unit={currentUnits.length} />
+                                <InputField label="Eccentricity (eL)" value={params.eL} onChange={(v) => updateParam('eL', v)} unit={currentUnits.length} />
+                            </div>
+                        </div>
+                        </div>
+                        <div className="bg-white rounded-xl shadow-sm border border-blue-200 overflow-hidden break-inside-avoid print:border-none print:shadow-none">
+                        <div className="px-4 py-3 bg-blue-50 border-b border-blue-200 flex items-center gap-2 print:bg-transparent print:border-b-2 print:border-black print:px-0"><ArrowRight className="w-4 h-4 text-blue-500 print:hidden" /><h2 className="font-semibold text-blue-700">Applied Pressures</h2></div>
+                        <div className="p-4 space-y-4 print:px-0">
+                            
+                            {/* Strength Limit State Inputs */}
+                            <div className="bg-blue-50 p-2 rounded-lg border border-blue-100 print:border-none print:p-0">
+                                <h3 className="text-xs font-bold text-blue-700 uppercase mb-2">Strength Limit State</h3>
+                                <div className="grid grid-cols-2 gap-2 mb-2">
+                                    <InputField label="Vertical Pressure" value={params.q_app_strength} onChange={(v) => updateParam('q_app_strength', v)} unit={currentUnits.stress} step={10} />
+                                    <InputField label="Horizontal Pressure" value={params.q_horiz_strength} onChange={(v) => updateParam('q_horiz_strength', v)} unit={currentUnits.stress} step={5} />
+                                </div>
+                                <InputField label="Load Direction (&#952;)" value={params.theta_strength} onChange={(v) => updateParam('theta_strength', v)} unit="deg" min={0} max={90} />
+                            </div>
+
+                            {/* Extreme Limit State Inputs */}
+                            <div className="bg-orange-50 p-2 rounded-lg border border-orange-100 print:border-none print:p-0">
+                                <h3 className="text-xs font-bold text-orange-700 uppercase mb-2">Extreme Limit State</h3>
+                                <div className="grid grid-cols-2 gap-2 mb-2">
+                                    <InputField label="Vertical Pressure" value={params.q_app_extreme} onChange={(v) => updateParam('q_app_extreme', v)} unit={currentUnits.stress} step={10} />
+                                    <InputField label="Horizontal Pressure" value={params.q_horiz_extreme} onChange={(v) => updateParam('q_horiz_extreme', v)} unit={currentUnits.stress} step={5} />
+                                </div>
+                                <div className="grid grid-cols-2 gap-2">
+                                    <InputField label="Load Direction (&#952;)" value={params.theta_extreme} onChange={(v) => updateParam('theta_extreme', v)} unit="deg" min={0} max={90} />
+                                    <InputField label="Res. Factor (&#966;)" value={params.phi_extreme_res} onChange={(v) => updateParam('phi_extreme_res', v)} unit="" step={0.05} max={1} />
+                                </div>
+                            </div>
+                        </div>
+                        </div>
+                    </div>
+
+                    <div className="lg:col-span-8 space-y-6">
+                        
+                         <div className="grid grid-cols-1 gap-6">
+                            <div className="bg-white rounded-xl shadow-sm border border-blue-200 overflow-hidden break-inside-avoid print:border-black print:shadow-none">
+                                <div className="bg-blue-50 px-4 py-3 border-b border-blue-100 flex justify-between items-center print:bg-transparent print:border-b-2 print:border-black"><h3 className="font-bold text-blue-800 flex items-center gap-2 print:text-black"><Layers className="w-4 h-4" /> Effective Stress Analysis {soilType === 'granular' ? '(Governing)' : ''}</h3><span className="text-xs bg-white text-blue-600 px-2 py-1 rounded border border-blue-200 print:border-black print:text-black">Drained</span></div>
+                                <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4"><CheckCard title="Strength Limit" applied={params.q_app_strength} capacity={results.effective?.qR_strength || 0} unit={currentUnits.stress} subtext={`\u03C6 = ${params.phi_eff_res}`} /><CheckCard title="Extreme Limit" applied={params.q_app_extreme} capacity={results.effective?.qR_extreme || 0} unit={currentUnits.stress} subtext={`\u03C6 = ${params.phi_extreme_res}`} /></div>
+                            </div>
+                            {soilType === 'cohesive' && (
+                                <div className="bg-white rounded-xl shadow-sm border border-emerald-200 overflow-hidden break-inside-avoid print:border-black print:shadow-none">
+                                    <div className="bg-emerald-50 px-4 py-3 border-b border-emerald-100 flex justify-between items-center print:bg-transparent print:border-b-2 print:border-black"><h3 className="font-bold text-emerald-800 flex items-center gap-2 print:text-black"><Layers className="w-4 h-4" /> Total Stress Analysis</h3><span className="text-xs bg-white text-emerald-600 px-2 py-1 rounded border border-emerald-200 print:border-black print:text-black">Undrained</span></div>
+                                    <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4"><CheckCard title="Strength Limit" applied={params.q_app_strength} capacity={results.total?.qR_strength || 0} unit={currentUnits.stress} subtext={`\u03C6 = ${params.phi_total_res}`} /><CheckCard title="Extreme Limit" applied={params.q_app_extreme} capacity={results.total?.qR_extreme || 0} unit={currentUnits.stress} subtext={`\u03C6 = ${params.phi_extreme_res}`} /></div>
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="bg-white rounded-xl shadow-sm border border-blue-200 p-6 flex flex-col items-center break-inside-avoid print:border-none print:shadow-none print:p-0">
+                            <div className="flex justify-between w-full mb-4"><h3 className="text-sm font-bold text-blue-700">Section View Schematic with Geomodel Layers</h3><div className="text-xs text-blue-400 print:hidden">Not to scale</div></div>
+                            <SectionViewSchematic Df={params.Df} B={params.B} Dw={params.Dw} gamma={params.gamma} q_v={params.q_app_strength} q_h={params.q_horiz_strength} layers={layers} units={currentUnits} />
+                        </div>
+                        
+                        <div className="bg-white rounded-xl shadow-sm border border-blue-200 p-6 break-inside-avoid print:hidden print:shadow-none print:p-0">
+                            <div className="flex items-center justify-between mb-4"><h3 className="text-sm font-bold text-blue-700">Sensitivity: Strength Resistance vs. Width (B)</h3><div className="flex items-center gap-1 text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded print:hidden"><MousePointer2 className="w-3 h-3" /> Interactive</div></div>
+                            <div className="h-64 w-full flex justify-center items-center"><SensitivityChart dataEffective={sensitivityData.effective} dataTotal={soilType === 'cohesive' ? sensitivityData.total : null} appliedPressure={params.q_app_strength} currentB={params.B} units={currentUnits} /></div>
+                        </div>
+                        <div className="bg-white rounded-xl shadow-sm border border-blue-200 overflow-hidden break-inside-avoid print:border-none print:shadow-none">
+                        <button onClick={() => setShowFactors(!showFactors)} className="w-full px-4 py-3 bg-blue-50 border-b border-blue-200 flex justify-between items-center hover:bg-blue-100 transition-colors print:hidden"><div className="flex items-center gap-2"><Info className="w-4 h-4 text-blue-500" /><h2 className="font-semibold text-blue-700">Detailed Calculation Factors</h2></div>{showFactors ? <ChevronUp className="w-4 h-4 text-blue-500" /> : <ChevronDown className="w-4 h-4 text-blue-500" />}</button>
+                        {(showFactors) && (
+                            <div className="p-4 space-y-6 print:p-0">
+                                <h2 className="hidden print:block font-bold text-lg mb-2 border-b-2 border-black pb-1">Calculation Details</h2>
+                                
+                                <FactorTable resultData={results.effective.strength} title="Effective - Strength Limit" colorClass="border-blue-100 print:border-black" units={currentUnits} />
+                                <FactorTable resultData={results.effective.extreme} title="Effective - Extreme Limit" colorClass="border-orange-100 print:border-black" units={currentUnits} />
+                                
+                                {soilType === 'cohesive' && results.total && (
+                                    <>
+                                        <FactorTable resultData={results.total.strength} title="Total - Strength Limit" colorClass="border-emerald-100 print:border-black" units={currentUnits} />
+                                        <FactorTable resultData={results.total.extreme} title="Total - Extreme Limit" colorClass="border-orange-100 print:border-black" units={currentUnits} />
+                                    </>
+                                )}
+                                
+                                <div className="text-xs text-blue-400 italic px-4 print:text-black"></div>
+                            </div>
+                        )}
+                        </div>
+                        
+                    </div>
+                    </div>
+                     <DocumentationSection />
+                </div>
+            );
+        };
+
+        const HomePage = ({ onSelectModule }) => {
+            const modules = [
+                { id: 'aashto', title: 'AASHTO LRFD', subtitle: 'Spread Footing Analysis', icon: <BookOpen className="w-8 h-8 text-blue-600" />, status: 'active', color: 'blue' },
+                { id: 'arema', title: 'AREMA', subtitle: 'Railway Engineering', icon: <Train className="w-8 h-8 text-blue-300" />, status: 'coming-soon', color: 'slate' },
+                { id: 'is', title: 'IS 6403', subtitle: 'Indian Standard', icon: <Book className="w-8 h-8 text-blue-300" />, status: 'coming-soon', color: 'slate' },
+                { id: 'bs', title: 'BS 8004', subtitle: 'British Standard', icon: <Globe className="w-8 h-8 text-blue-300" />, status: 'coming-soon', color: 'slate' }
+            ];
+
+            return (
+                <div className="flex flex-col items-center justify-center min-h-[80vh] animate-fade-in">
+                    <div className="text-center mb-12">
+                        <h1 style={{ fontFamily: "'Montserrat', sans-serif" }} className="text-6xl font-bold text-white bg-sky-400 px-8 py-4 rounded-3xl shadow-xl mb-6 inline-block tracking-tight">
+                            GroundOne
+                        </h1>
+                        <p className="text-xl text-blue-500 max-w-2xl mx-auto font-medium">
+                            Advanced geotechnical analysis suite for modern infrastructure projects. 
+                            Select a design code to begin.
+                        </p>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6 w-full max-w-4xl px-4">
+                        {modules.map(mod => (
+                            <button 
+                                key={mod.id}
+                                onClick={() => mod.status === 'active' && onSelectModule(mod.id)}
+                                disabled={mod.status !== 'active'}
+                                className={`group relative text-left p-6 rounded-2xl border transition-all duration-300 flex items-start gap-4
+                                    ${mod.status === 'active' 
+                                        ? 'bg-white border-blue-200 shadow-sm hover:shadow-xl hover:border-blue-400 hover:-translate-y-1 cursor-pointer' 
+                                        : 'bg-blue-50 border-blue-100 opacity-70 cursor-not-allowed'
+                                    }`}
+                            >
+                                <div className={`p-3 rounded-xl ${mod.status === 'active' ? 'bg-blue-50 group-hover:bg-blue-100' : 'bg-blue-100/50'} transition-colors`}>
+                                    {mod.icon}
+                                </div>
+                                <div>
+                                    <h3 className={`text-xl font-bold ${mod.status === 'active' ? 'text-blue-900' : 'text-blue-400'}`}>{mod.title}</h3>
+                                    <p className="text-blue-500 mt-1">{mod.subtitle}</p>
+                                    {mod.status === 'active' ? (
+                                        <div className="mt-4 flex items-center text-sm font-semibold text-blue-600 group-hover:translate-x-1 transition-transform">
+                                            Launch Calculator <ArrowRight className="w-4 h-4 ml-1" />
+                                        </div>
+                                    ) : (
+                                        <div className="mt-4 flex items-center gap-1 text-xs font-bold text-blue-400 uppercase tracking-wide bg-blue-100 px-2 py-1 rounded w-fit">
+                                            <Construction className="w-3 h-3" /> Coming Soon
+                                        </div>
+                                    )}
+                                </div>
+                            </button>
+                        ))}
+                    </div>
+
+                    <footer className="mt-20 text-blue-400 text-sm">
+                        
+                    </footer>
+                </div>
+            );
+        };
+
+        const GroundOneApp = () => {
+            const [view, setView] = useState('home'); 
+
+            const handleSelectModule = (moduleId) => {
+                if (moduleId === 'aashto') setView('aashto');
+            };
+
+            return (
+                <div className="min-h-screen bg-blue-50 font-sans text-blue-900 print:bg-white">
+                    {view === 'home' && (
+                        <div className="p-6">
+                            <HomePage onSelectModule={handleSelectModule} />
+                        </div>
+                    )}
+                    
+                    {view === 'aashto' && (
+                        <div className="p-6 print:p-0">
+                            <div className="max-w-7xl mx-auto">
+                                <AashtoModule onBack={() => setView('home')} />
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<GroundOneApp />);
+    </script>
+</body>
+</html>
