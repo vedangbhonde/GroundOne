@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GroundOne - Geotechnical AASHTO SBC Suite</title>
+    <title>GroundOne - Geotechnical Geotechnical Analysis Suite</title>
     
     <!-- 1. Load Tailwind CSS (Styling) -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -725,7 +725,7 @@
                                     <option value="Cohesive">Cohesive</option>
                                 </select>
                             </div>
-                            <InputField label="Name" value={newLayer.name} onChange={v => setNewLayer({...newLayer, name: v})} unit="" />
+                            <InputField label="Name" value={newLayer.name} onChange={v => setNewLayer({...newLayer, name: v})} unit="" type="text" />
                             <InputField label={`γ (${units.density})`} value={newLayer.gamma} onChange={v => setNewLayer({...newLayer, gamma: v})} />
                             <InputField label="Φ' (deg)" value={newLayer.phi} onChange={v => setNewLayer({...newLayer, phi: v})} />
                             <InputField label={`Cu (${units.stress})`} value={newLayer.cu} onChange={v => setNewLayer({...newLayer, cu: v})} />
@@ -1171,3 +1171,4 @@
     </script>
 </body>
 </html>
+
